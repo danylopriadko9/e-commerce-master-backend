@@ -43,6 +43,12 @@ app.get('/news', newsController.getAllNews);
 
 //--------------------history block
 app.get('/history/:url', historyController.getHistoryMap);
+//--------------------compare
+app.get('/compare/:id', productController.getCompareCharacteristicsValue);
+app.get(
+  '/compare/category/:id',
+  categoriesController.getCharacteristicsCategory
+);
 //-----------------------------------------------------------------------------
 
 app.use('/static', express.static(path.join(__dirname + '/static')));

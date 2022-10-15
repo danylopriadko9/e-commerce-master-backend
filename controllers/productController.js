@@ -14,7 +14,8 @@ export const getProductsWithDiscountQuery = (req, res) => {
       pp.discount_percent, 
       pi.dir_path, 
       pi.filename, 
-      pc.product_id 
+      pc.product_id,
+      pc.category_id
   FROM product_category pc
   JOIN product_lang pl ON pc.product_id = pl.product_id
   JOIN category_lang cl ON pc.category_id = cl.category_id
@@ -78,7 +79,8 @@ export const getOneProductByUrl = (req, res) => {
       pc.product_id,
       pl.description,
       pl.meta_description,
-      pl.meta_title
+      pl.meta_title,
+      pc.category_id
     FROM product_category pc
     JOIN product_lang pl ON pc.product_id = pl.product_id
     JOIN category_lang cl ON pc.category_id = cl.category_id
@@ -159,5 +161,31 @@ export const getPropertiesProducts = (req, res) => {
   db.query(q, (err, data) => {
     if (err) console.log(err);
     return res.json(data);
+  });
+};
+
+export const getCompareCharacteristicsValue = (req, res) => {
+  const id = req.params.id;
+  const q = `
+    SELECT DISTINCT 
+      pvl.name AS value,
+      p.guarantee
+    FROM product_rel_property_value prpv
+    JOIN property_value_lang pvl 
+      ON pvl.property_value_id = prpv.property_value_id
+    JOIN property_lang pl 
+      ON pl.property_id = prpv.property_id
+    JOIN product p
+      ON p.id = prpv.product_id
+    WHERE pl.language_id = pvl.language_id = 1
+      AND prpv.status LIKE 'enabled'
+      AND prpv.product_id = ${id}
+  `;
+
+  db.query(q, (err, data) => {
+    if (err) console.log(err);
+    return res.json({
+      [id]: data,
+    });
   });
 };

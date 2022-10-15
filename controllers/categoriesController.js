@@ -119,3 +119,26 @@ AND c.parent_id IN (
     res.json(data);
   });
 };
+
+export const getCharacteristicsCategory = (req, res) => {
+  const id = req.params.id;
+  const q = `
+    SELECT DISTINCT 
+      pl.name AS characteristic
+    FROM product_rel_property_value prpv
+    JOIN property_value_lang pvl 
+      ON pvl.property_value_id = prpv.property_value_id
+    JOIN property_lang pl 
+      ON pl.property_id = prpv.property_id
+    JOIN product_category pc
+      ON pc.product_id = prpv.product_id
+    WHERE pl.language_id = pvl.language_id = 1
+      AND prpv.status LIKE 'enabled'
+      AND pc.category_id = 80
+  `;
+
+  db.query(q, (err, data) => {
+    if (err) console.log(err);
+    return res.json(data);
+  });
+};
