@@ -124,7 +124,8 @@ export const getCharacteristicsCategory = (req, res) => {
   const id = req.params.id;
   const q = `
     SELECT DISTINCT 
-      pl.name AS characteristic
+      pl.name AS characteristic,
+      pl.property_id
     FROM product_rel_property_value prpv
     JOIN property_value_lang pvl 
       ON pvl.property_value_id = prpv.property_value_id
@@ -134,7 +135,7 @@ export const getCharacteristicsCategory = (req, res) => {
       ON pc.product_id = prpv.product_id
     WHERE pl.language_id = pvl.language_id = 1
       AND prpv.status LIKE 'enabled'
-      AND pc.category_id = 80
+      AND pc.category_id = ${id}
   `;
 
   db.query(q, (err, data) => {

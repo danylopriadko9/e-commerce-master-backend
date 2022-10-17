@@ -48,7 +48,8 @@ export const getNewProducts = (req, res) => {
             pl.url, 
             pp.base_price, 
             pp.discount_percent, 
-            pc.product_id
+            pc.product_id,
+            cl.category_id
         FROM product_category pc
         JOIN product_lang pl ON pc.product_id = pl.product_id
         JOIN category_lang cl ON pc.category_id = cl.category_id
@@ -169,6 +170,7 @@ export const getCompareCharacteristicsValue = (req, res) => {
   const q = `
     SELECT DISTINCT 
       pvl.name AS value,
+      pl.property_id,
       p.guarantee
     FROM product_rel_property_value prpv
     JOIN property_value_lang pvl 
