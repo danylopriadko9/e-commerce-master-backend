@@ -15,12 +15,20 @@ export const getProductsWithDiscountQuery = (req, res) => {
       pi.dir_path, 
       pi.filename, 
       pc.product_id,
-      pc.category_id
+      pc.category_id,
+      c.id,
+      c.iso
   FROM product_category pc
-  JOIN product_lang pl ON pc.product_id = pl.product_id
-  JOIN category_lang cl ON pc.category_id = cl.category_id
-  JOIN product_price pp ON pc.product_id = pp.product_id
-  JOIN product_image pi ON pi.product_id = pc.product_id
+  JOIN product_lang pl 
+    ON pc.product_id = pl.product_id
+  JOIN category_lang cl 
+    ON pc.category_id = cl.category_id
+  JOIN product_price pp 
+    ON pc.product_id = pp.product_id
+  JOIN product_image pi 
+    ON pi.product_id = pc.product_id
+  JOIN currency c
+	  ON c.id = pp.currency_id
   WHERE pl.language_id = 1 
   AND cl.language_id = 1
   AND pp.discount_percent > 25
@@ -49,13 +57,22 @@ export const getNewProducts = (req, res) => {
             pp.base_price, 
             pp.discount_percent, 
             pc.product_id,
-            cl.category_id
+            cl.category_id,
+            c.id,
+            c.iso
         FROM product_category pc
-        JOIN product_lang pl ON pc.product_id = pl.product_id
-        JOIN category_lang cl ON pc.category_id = cl.category_id
-        JOIN product_price pp ON pc.product_id = pp.product_id
-        JOIN product_image pi ON pi.product_id = pc.product_id
-        JOIN product p ON pc.product_id = p.id
+        JOIN product_lang pl 
+          ON pc.product_id = pl.product_id
+        JOIN category_lang cl 
+          ON pc.category_id = cl.category_id
+        JOIN product_price pp 
+          ON pc.product_id = pp.product_id
+        JOIN product_image pi 
+          ON pi.product_id = pc.product_id
+        JOIN product p 
+          ON pc.product_id = p.id
+        JOIN currency c
+	        ON c.id = pp.currency_id
         WHERE pl.language_id = 1 
         AND cl.language_id = 1
         ORDER BY p.t_created DESC
@@ -81,12 +98,20 @@ export const getOneProductByUrl = (req, res) => {
       pl.description,
       pl.meta_description,
       pl.meta_title,
-      pc.category_id
+      pc.category_id,
+      c.id,
+      c.iso
     FROM product_category pc
-    JOIN product_lang pl ON pc.product_id = pl.product_id
-    JOIN category_lang cl ON pc.category_id = cl.category_id
-    JOIN product_price pp ON pc.product_id = pp.product_id
-    JOIN product p ON pc.product_id = p.id
+    JOIN product_lang pl 
+      ON pc.product_id = pl.product_id
+    JOIN category_lang cl 
+      ON pc.category_id = cl.category_id
+    JOIN product_price pp 
+      ON pc.product_id = pp.product_id
+    JOIN product p 
+      ON pc.product_id = p.id
+    JOIN currency c
+	    ON c.id = pp.currency_id
     WHERE pl.url = '${url}'
     AND cl.language_id = 1
   `;
@@ -155,7 +180,7 @@ export const getPropertiesProducts = (req, res) => {
 	    ON pp.product_id = prp.relation_product_id
     JOIN category_lang cl 
 	    ON cl.category_id = pc.category_id
-    WHERE prp.product_id = ${id}
+    WHERE prp.product_id IN(${id})
     AND pl.language_id = cl.language_id = 1
   `;
 
@@ -189,5 +214,36 @@ export const getCompareCharacteristicsValue = (req, res) => {
     return res.json({
       [id]: data,
     });
+  });
+};
+
+export const getPropertiesCompareProducts = (req, res) => {
+  const id_arr = req.body.data;
+  console.log(id_arr);
+  const q = `
+    SELECT DISTINCT
+      relation_product_id AS product_id,
+      pl.name AS product_name,
+      pl.description,
+      pl.url,
+      cl.name AS category_name,
+      pp.base_price,
+      pp.discount_percent
+    FROM product_rel_product prp
+    JOIN product_lang pl
+      ON pl.product_id = prp.relation_product_id
+    JOIN product_category pc
+      ON pc.product_id = prp.relation_product_id
+    JOIN product_price pp
+      ON pp.product_id = prp.relation_product_id
+    JOIN category_lang cl
+      ON cl.category_id = pc.category_id
+    WHERE prp.product_id IN(${id_arr.join(',')})
+    AND pl.language_id = cl.language_id = 1
+  `;
+
+  db.query(q, (err, data) => {
+    if (err) console.log(err);
+    return res.json(data);
   });
 };

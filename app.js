@@ -2,6 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
 import cors from 'cors';
+import bodyParser from 'body-parser';
 
 import {
   categoriesController,
@@ -14,6 +15,8 @@ import path from 'path';
 const port = process.env.PORT || 3001;
 const app = express();
 app.use(cors());
+app.use(bodyParser.json());
+app.use(express.json());
 
 const __dirname = path.resolve();
 
@@ -26,6 +29,11 @@ app.get('/product/:url', productController.getOneProductByUrl);
 app.get('/product/photos/:id', productController.getAffPhotoForOneProduct);
 app.get('/product/characteristics/:id', productController.getCharacteristics);
 app.get('/product/properties/:id', productController.getPropertiesProducts);
+
+app.post(
+  '/property_compare_products',
+  productController.getPropertiesCompareProducts
+);
 
 //--------------------categories
 app.get('/categories', categoriesController.getAllCategories);
