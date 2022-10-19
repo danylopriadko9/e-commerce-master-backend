@@ -170,7 +170,8 @@ export const getPropertiesProducts = (req, res) => {
         pl.url, 
         cl.name AS category_name,
         pp.base_price,
-        pp.discount_percent
+        pp.discount_percent,
+        c.iso
     FROM product_rel_product prp
     JOIN product_lang pl 
 	    ON pl.product_id = prp.relation_product_id
@@ -180,8 +181,11 @@ export const getPropertiesProducts = (req, res) => {
 	    ON pp.product_id = prp.relation_product_id
     JOIN category_lang cl 
 	    ON cl.category_id = pc.category_id
+    JOIN currency c
+	    ON c.id = pp.currency_id
     WHERE prp.product_id IN(${id})
-    AND pl.language_id = cl.language_id = 1
+    AND pl.language_id = 1
+    AND cl.language_id = 1
   `;
 
   db.query(q, (err, data) => {
@@ -228,7 +232,8 @@ export const getPropertiesCompareProducts = (req, res) => {
       pl.url,
       cl.name AS category_name,
       pp.base_price,
-      pp.discount_percent
+      pp.discount_percent,
+      c.iso
     FROM product_rel_product prp
     JOIN product_lang pl
       ON pl.product_id = prp.relation_product_id
@@ -238,6 +243,8 @@ export const getPropertiesCompareProducts = (req, res) => {
       ON pp.product_id = prp.relation_product_id
     JOIN category_lang cl
       ON cl.category_id = pc.category_id
+    JOIN currency c
+	    ON c.id = pp.currency_id
     WHERE prp.product_id IN(${id_arr.join(',')})
     AND pl.language_id = cl.language_id = 1
   `;
