@@ -65,7 +65,8 @@ export const getProductCategories = (req, res) => {
       cl.name AS category_name,
       cl.url AS category_url,
       pp.base_price,
-      pp.discount_percent
+      pp.discount_percent,
+      c.iso
     FROM product_category pc
     JOIN category_lang cl 
       ON cl.category_id = pc.category_id
@@ -73,6 +74,8 @@ export const getProductCategories = (req, res) => {
       ON pl.product_id = pc.product_id
     JOIN product_price pp 
       ON pp.product_id = pc.product_id
+    JOIN currency c
+      ON c.id = pp.currency_id
     WHERE cl.language_id = pl.language_id = 1
     AND cl.url LIKE '${url}'
     LIMIT ${startingLimit}, ${qtyItemsPage}

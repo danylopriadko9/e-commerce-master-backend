@@ -254,3 +254,136 @@ export const getPropertiesCompareProducts = (req, res) => {
     return res.json(data);
   });
 };
+
+export const getSearchItems = (req, res) => {
+  const group_url = req.params.groupUrl;
+  const search_value = req.params.searchValue;
+
+  if (group_url && search_value) {
+    const clean_group_url = group_url.replace('group_', '');
+    const category_q = `
+      SELECT 
+        c.id
+      FROM category c
+      JOIN category_lang cl
+        ON cl.category_id = c.id
+      WHERE cl.language_id = 1
+      AND cl.url = '${clean_group_url}'
+      AND c.parent_id = 0
+    `;
+    db.query(category_q, (err, data) => {
+      if (err) console.log(err);
+
+      // если не родительская
+      if (!data.length) {
+        const q = `
+          SELECT DISTINCT
+            pl.name as product_name, 
+            cl.name as category_name, 
+            pl.url, 
+            pp.base_price, 
+            pp.discount_percent, 
+            pc.product_id,
+            pc.category_id,
+            c.id,
+            c.iso,
+            pl.product_id,
+            cl.url as category_url
+          FROM product_category pc
+          JOIN product_lang pl 
+            ON pc.product_id = pl.product_id
+          JOIN category_lang cl 
+            ON pc.category_id = cl.category_id
+          JOIN product_price pp 
+            ON pc.product_id = pp.product_id
+          JOIN product_image pi 
+            ON pi.product_id = pc.product_id
+          JOIN currency c
+            ON c.id = pp.currency_id
+          WHERE pl.language_id = 1 
+          AND cl.language_id = 1
+          AND cl.url LIKE '${clean_group_url}'
+          AND pl.name LIKE '%${search_value}%'
+          OR pc.product_id = '${search_value}'
+          AND cl.url LIKE '${clean_group_url}'
+          OR cl.name LIKE '%${search_value}%'
+          AND cl.url LIKE '${clean_group_url}'
+        `;
+
+        db.query(q, (err, data) => {
+          if (err) console.log(err);
+          return res.json(data);
+        });
+        return;
+      } else {
+        // если родительская
+        const subcategories_q = `
+          SELECT 
+            c.id,
+            ci.dir_path,
+            ci.filename,
+            cl.name,
+            cl.url
+          FROM category c
+          JOIN category_lang cl 
+          ON c.id = cl.category_id
+          JOIN category_image ci
+          ON ci.category_id = c.id
+          WHERE cl.language_id = 1
+          AND cl.name LIKE '%${search_value}%'
+          AND c.parent_id IN (
+            SELECT c.id
+            FROM category c
+            JOIN category_lang cl
+              ON cl.category_id = c.id
+            WHERE cl.language_id = 1 
+            AND cl.url IS NOT NULL
+            AND cl.url = '${clean_group_url}'
+          )
+        `;
+        db.query(subcategories_q, (err, data) => {
+          if (err) console.log(err);
+          return res.json(data);
+        });
+        return;
+      }
+    });
+  }
+
+  if (search_value && !group_url) {
+    const q = `
+      SELECT DISTINCT
+        pl.name as product_name, 
+        cl.name as category_name, 
+        pl.url, 
+        pp.base_price, 
+        pp.discount_percent, 
+        pc.product_id,
+        pc.category_id,
+        c.id,
+        c.iso,
+        pl.product_id
+    FROM product_category pc
+    JOIN product_lang pl 
+      ON pc.product_id = pl.product_id
+    JOIN category_lang cl 
+      ON pc.category_id = cl.category_id
+    JOIN product_price pp 
+      ON pc.product_id = pp.product_id
+    JOIN product_image pi 
+      ON pi.product_id = pc.product_id
+    JOIN currency c
+      ON c.id = pp.currency_id
+    WHERE pl.language_id = 1 
+      AND cl.language_id = 1
+      AND pl.name LIKE '%${search_value}%'
+        OR cl.name LIKE '%${search_value}%'
+        OR pc.product_id = '${search_value}'
+    `;
+
+    db.query(q, (err, data) => {
+      if (err) console.log(err);
+      return res.json(data);
+    });
+  }
+};
