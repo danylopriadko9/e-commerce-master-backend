@@ -258,22 +258,25 @@ export const getPropertiesCompareProducts = (req, res) => {
 export const getSearchItems = (req, res) => {
   const group_url = req.params.groupUrl;
   const search_value = req.params.searchValue;
+  const page = req.params.page;
 
-  if (group_url && search_value) {
+  const qtyItemsPage = 8;
+  const startingLimit = (page - 1) * qtyItemsPage;
+
+  if (group_url) {
     const clean_group_url = group_url.replace('group_', '');
+    //запрос на группу, родительская ли она
     const category_q = `
-      SELECT 
+      SELECT DISTINCT
         c.id
       FROM category c
       JOIN category_lang cl
         ON cl.category_id = c.id
-      WHERE cl.language_id = 1
       AND cl.url = '${clean_group_url}'
       AND c.parent_id = 0
     `;
     db.query(category_q, (err, data) => {
       if (err) console.log(err);
-
       // если не родительская
       if (!data.length) {
         const q = `
@@ -312,7 +315,19 @@ export const getSearchItems = (req, res) => {
 
         db.query(q, (err, data) => {
           if (err) console.log(err);
-          return res.json(data);
+          const numberOfPages = Math.ceil(data.length / qtyItemsPage);
+          db.query(
+            q + ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
+            (error, products) => {
+              if (error) console.log(error);
+
+              return res.json({
+                data: products,
+                type: 'product',
+                pageQty: numberOfPages,
+              });
+            }
+          );
         });
         return;
       } else {
@@ -343,13 +358,17 @@ export const getSearchItems = (req, res) => {
         `;
         db.query(subcategories_q, (err, data) => {
           if (err) console.log(err);
-          return res.json(data);
+          return res.json({
+            data: data,
+            type: 'category',
+          });
         });
         return;
       }
     });
   }
 
+  // если ищем с главной страницы
   if (search_value && !group_url) {
     const q = `
       SELECT DISTINCT
@@ -383,7 +402,19 @@ export const getSearchItems = (req, res) => {
 
     db.query(q, (err, data) => {
       if (err) console.log(err);
-      return res.json(data);
+      const numberOfPages = Math.ceil(data.length / qtyItemsPage);
+
+      db.query(
+        q + ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
+        (error, products) => {
+          if (error) console.log(error);
+          return res.json({
+            data: products,
+            type: 'product',
+            pageQty: numberOfPages,
+          });
+        }
+      );
     });
   }
 };

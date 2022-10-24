@@ -58,8 +58,11 @@ app.get(
   categoriesController.getCharacteristicsCategory
 );
 //-------------------search
-app.get('/search/:groupUrl/:searchValue', productController.getSearchItems);
-app.get('/search/:searchValue', productController.getSearchItems);
+app.get(
+  '/search/:groupUrl/:searchValue/:page',
+  productController.getSearchItems
+);
+app.get('/search/:searchValue/:page', productController.getSearchItems);
 //-----------------------------------------------------------------------------
 
 app.use('/static', express.static(path.join(__dirname + '/static')));
