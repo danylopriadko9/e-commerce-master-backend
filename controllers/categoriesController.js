@@ -31,17 +31,19 @@ export const getProductCategories = (req, res) => {
 
   const startingLimit = (page - 1) * qtyItemsPage;
   const q = `
-    SELECT DISTINCT
-      pc.product_id, 
+  SELECT DISTINCT
+	pc.product_id, 
       pc.category_id, 
       pl.name AS product_name, 
       pl.url, 
-      pl.meta_keywords,
+       pl.meta_keywords,
       cl.name AS category_name,
       cl.url AS category_url,
       pp.base_price,
       pp.discount_percent,
-      c.iso
+      c.iso,
+      ml.name,
+      ml.manufacturer_id
     FROM product_category pc
     JOIN category_lang cl 
       ON cl.category_id = pc.category_id
@@ -51,6 +53,10 @@ export const getProductCategories = (req, res) => {
       ON pp.product_id = pc.product_id
     JOIN currency c
       ON c.id = pp.currency_id
+	JOIN product p 
+		ON p.id = pl.product_id
+	JOIN manufacturer_lang ml
+		ON ml.manufacturer_id = p.manufacturer_id
     WHERE cl.language_id = pl.language_id = 1
     AND cl.url LIKE '${url}'
   `;
@@ -121,6 +127,22 @@ export const getCharacteristicsCategory = (req, res) => {
       AND prpv.status LIKE 'enabled'
       AND pc.category_id = ${id}
   `;
+
+  // SELECT DISTINCT
+  //     pl.name AS characteristic,
+  //     pl.property_id
+  //   FROM product_rel_property_value prpv
+  //   JOIN property_value_lang pvl
+  //     ON pvl.property_value_id = prpv.property_value_id
+  //   JOIN property_lang pl
+  //     ON pl.property_id = prpv.property_id
+  //   JOIN product_category pc
+  //     ON pc.product_id = prpv.product_id
+  // JOIN category_lang cl
+  // 	ON cl.category_id = pc.category_id
+  //   WHERE pl.language_id = pvl.language_id = 1
+  //     AND prpv.status LIKE 'enabled'
+  //     AND cl.url = 'parokonvektomaty'
 
   db.query(q, (err, data) => {
     if (err) console.log(err);
