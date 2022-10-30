@@ -38,14 +38,23 @@ app.post(
 //--------------------categories
 app.get('/categories', categoriesController.getAllCategories);
 app.get(
-  '/productCategories/:url/:page',
+  '/productCategories/:url/:page/:manufacturer?',
   categoriesController.getProductCategories
 );
 app.get(
   '/subcategories/:url',
   categoriesController.getSubcategoriesInformation
 );
+app.get(
+  '/subcategories/filter/:url',
+  categoriesController.getSubcategoriesFilterParams
+);
+app.get(
+  '/filter/category/:url',
+  categoriesController.getFiltrationCharacteristictAndParams
+);
 
+app.post('/filter/post/:url', categoriesController.postFiltrationParams);
 //--------------------news
 app.get('/news', newsController.getAllNews);
 
@@ -54,15 +63,15 @@ app.get('/history/:url', historyController.getHistoryMap);
 //--------------------compare
 app.get('/compare/:id', productController.getCompareCharacteristicsValue);
 app.get(
-  '/compare/category/:id',
+  '/compare/category/:url',
   categoriesController.getCharacteristicsCategory
 );
 //-------------------search
 app.get(
-  '/search/:groupUrl/:searchValue/:page',
+  '/search/:groupUrl?/:searchValue/:page',
   productController.getSearchItems
 );
-app.get('/search/:searchValue/:page', productController.getSearchItems);
+
 //-----------------------------------------------------------------------------
 
 app.use('/static', express.static(path.join(__dirname + '/static')));

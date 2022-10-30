@@ -17,7 +17,8 @@ export const getProductsWithDiscountQuery = (req, res) => {
       pc.product_id,
       pc.category_id,
       c.id,
-      c.iso
+      c.iso,
+      cl.url as category_url
   FROM product_category pc
   JOIN product_lang pl 
     ON pc.product_id = pl.product_id
@@ -59,7 +60,8 @@ export const getNewProducts = (req, res) => {
             pc.product_id,
             cl.category_id,
             c.id,
-            c.iso
+            c.iso,
+            cl.url as category_url
         FROM product_category pc
         JOIN product_lang pl 
           ON pc.product_id = pl.product_id
@@ -100,7 +102,8 @@ export const getOneProductByUrl = (req, res) => {
       pl.meta_title,
       pc.category_id,
       c.id,
-      c.iso
+      c.iso,
+      cl.url as category_url
     FROM product_category pc
     JOIN product_lang pl 
       ON pc.product_id = pl.product_id
@@ -171,7 +174,8 @@ export const getPropertiesProducts = (req, res) => {
         cl.name AS category_name,
         pp.base_price,
         pp.discount_percent,
-        c.iso
+        c.iso,
+        cl.url as category_url
     FROM product_rel_product prp
     JOIN product_lang pl 
 	    ON pl.product_id = prp.relation_product_id
@@ -233,7 +237,8 @@ export const getPropertiesCompareProducts = (req, res) => {
       cl.name AS category_name,
       pp.base_price,
       pp.discount_percent,
-      c.iso
+      c.iso,
+      cl.url as category_url
     FROM product_rel_product prp
     JOIN product_lang pl
       ON pl.product_id = prp.relation_product_id
@@ -381,7 +386,8 @@ export const getSearchItems = (req, res) => {
         pc.category_id,
         c.id,
         c.iso,
-        pl.product_id
+        pl.product_id,
+        cl.url as category_url
     FROM product_category pc
     JOIN product_lang pl 
       ON pc.product_id = pl.product_id
