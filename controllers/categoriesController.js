@@ -28,8 +28,6 @@ export const getProductCategories = (req, res) => {
   const page = req.params.page;
   const manufacturer = req.params.manufacturer;
 
-  if (manufacturer) console.log(manufacturer);
-
   const qtyItemsPage = 8;
 
   const startingLimit = (page - 1) * qtyItemsPage;
@@ -249,7 +247,7 @@ export const postFiltrationParams = (req, res) => {
   const min_price = req.body.min_price;
   const max_price = req.body.max_price;
 
-  console.log(req.body);
+  const params = req.body.filter_params;
 
   let q = `
     SELECT DISTINCT
@@ -268,7 +266,6 @@ export const postFiltrationParams = (req, res) => {
       JOIN product_price pp
 	      ON p.id = pp.product_id
       WHERE cl.url = '${url}'
-      AND pp.base_price BETWEEN 100 AND 5000
   `;
 
   if (brands.length) q = q + ` AND p.manufacturer_id IN (${brands.join(', ')})`;
@@ -279,8 +276,49 @@ export const postFiltrationParams = (req, res) => {
 
   db.query(q, (err, data) => {
     if (err) console.log(err);
+
+    // if we havnt any params in request we will return the result of last query
+    if (!Object.keys(params).length) {
+      const q = `
+        SELECT distinct
+          pl.name as product_name, 
+          cl.name as category_name, 
+          pl.url, 
+          pp.base_price, 
+          pp.discount_percent, 
+          pc.product_id,
+          pl.description,
+          pl.meta_description,
+          pl.meta_title,
+          pc.category_id,
+          c.id,
+          c.iso,
+          cl.url as category_url
+        FROM product_category pc
+        JOIN product_lang pl 
+          ON pc.product_id = pl.product_id
+        JOIN category_lang cl 
+          ON pc.category_id = cl.category_id
+        JOIN product_price pp 
+          ON pc.product_id = pp.product_id
+        JOIN product p 
+          ON pc.product_id = p.id
+        JOIN currency c
+          ON c.id = pp.currency_id
+        WHERE cl.url = '${url}'
+        AND cl.language_id = 1
+      `;
+
+      db.query(q, (err, data) => {
+        if (err) console.log(err);
+        return res.json(data);
+      });
+    }
+
+    // get all ids from first step of filtration query
     const arr_of_id = data.map((el) => el.id);
 
+    // geting all information about products who has id in params array
     const secound_q = `
       SELECT DISTINCT
         pl.product_id,
@@ -293,7 +331,10 @@ export const postFiltrationParams = (req, res) => {
         pc.category_id,
         c.id,
         c.iso,
-        cl.url as category_url
+        cl.url as category_url,
+        prpv.property_id,
+        pvl.property_value_id,
+        pvl.name
       FROM product_category pc
       JOIN product_lang pl 
         ON pc.product_id = pl.product_id
@@ -303,6 +344,12 @@ export const postFiltrationParams = (req, res) => {
         ON pc.product_id = pp.product_id
       JOIN currency c
         ON c.id = pp.currency_id
+      JOIN product p
+        ON p.id = pp.product_id
+      JOIN product_rel_property_value prpv
+        ON prpv.product_id = pl.product_id
+      JOIN property_value_lang pvl 
+        ON pvl.property_value_id = prpv.property_value_id
       WHERE pl.language_id = 1 
       AND cl.language_id = 1
       AND pl.product_id IN (${arr_of_id.join(',')})
@@ -310,7 +357,64 @@ export const postFiltrationParams = (req, res) => {
 
     db.query(secound_q, (err, data) => {
       if (err) console.log(err);
-      return res.json(data);
+
+      // group information about product params
+      const items = arr_of_id.map((el) => {
+        const result = {};
+        data
+          .filter((e) => e.product_id === el)
+          .forEach((item) => {
+            result[item.property_id] = item.name;
+          });
+        result.id = el;
+        return result;
+      });
+
+      // check the suitable products
+      const result = items
+        .filter((el) => {
+          let flag = 0;
+          for (let key in params) {
+            if (el[key] === params[key]) flag++;
+            if (flag === Object.keys(params).length) return true;
+          }
+        })
+        .map((el) => el.id);
+
+      const q = `
+          SELECT distinct
+          pl.name as product_name, 
+          cl.name as category_name, 
+          pl.url, 
+          pp.base_price, 
+          pp.discount_percent, 
+          pc.product_id,
+          pl.description,
+          pl.meta_description,
+          pl.meta_title,
+          pc.category_id,
+          c.id,
+          c.iso,
+          cl.url as category_url
+        FROM product_category pc
+        JOIN product_lang pl 
+          ON pc.product_id = pl.product_id
+        JOIN category_lang cl 
+          ON pc.category_id = cl.category_id
+        JOIN product_price pp 
+          ON pc.product_id = pp.product_id
+        JOIN product p 
+          ON pc.product_id = p.id
+        JOIN currency c
+          ON c.id = pp.currency_id
+        WHERE pl.product_id IN(${result.join(',')})
+        AND cl.language_id = 1
+      `;
+
+      db.query(q, (err, data) => {
+        if (err) console.log(err);
+        return res.json(data);
+      });
     });
   });
 };
