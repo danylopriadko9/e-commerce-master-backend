@@ -28,7 +28,31 @@ export const getHistoryMap = (req, res) => {
 
     db.query(q, (err, data) => {
       if (err) console.log(err);
-      return res.json(...data);
+
+      if (!data.length) {
+        const q = `
+          SELECT 
+            pl.name AS product_name,
+            pl.url AS product_url,
+            cl.name AS category_name,
+            cl.url AS category_url
+          FROM master.product_lang pl
+          JOIN product_category pc
+            ON pc.product_id = pl.product_id
+          JOIN category_lang cl
+            ON cl.category_id = pc.category_id
+          WHERE pl.url = '${clean_url}'
+          AND pl.language_id = 1
+          AND cl.language_id = 1
+        `;
+
+        db.query(q, (err, data) => {
+          if (err) console.log(err);
+          return res.json(...data);
+        });
+      } else {
+        return res.json(...data);
+      }
     });
   }
 
