@@ -72,9 +72,12 @@ export const countProductCurrency = async (
         else if (min && !max) return el.price > min;
         else if (max && !min) return el.price < max;
       });
-      new_data.map((el) => el.id);
-      console.log('new_data', new_data);
-      return new_data;
+
+      console.log(
+        'отработала',
+        new_data.map((el) => el.id)
+      );
+      return new_data.map((el) => el.id);
     }
   });
 };

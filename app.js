@@ -3,6 +3,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import filtrationController from './controllers/filtrationController.js';
+import router from './Router/router.js';
 
 import {
   categoriesController,
@@ -17,6 +19,7 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.json());
+app.use('/filter', router);
 
 const __dirname = path.resolve();
 
@@ -34,6 +37,8 @@ app.post(
   '/property_compare_products',
   productController.getPropertiesCompareProducts
 );
+
+//app.post('/filter/post:url', categoriesController.postFiltrationParams);
 
 //--------------------categories
 app.get('/categories', categoriesController.getAllCategories);
@@ -54,7 +59,6 @@ app.get(
   categoriesController.getFiltrationCharacteristictAndParams
 );
 
-app.post('/filter/post/:url', categoriesController.postFiltrationParams);
 //--------------------news
 app.get('/news', newsController.getAllNews);
 
@@ -76,6 +80,14 @@ app.get(
 
 app.use('/static', express.static(path.join(__dirname + '/static')));
 
-app.listen(port, () => {
-  console.log(`Server is running on ${port} PORT!`);
-});
+const startApp = () => {
+  try {
+    app.listen(port, () => {
+      console.log(`Server is running on ${port} PORT!`);
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+startApp();

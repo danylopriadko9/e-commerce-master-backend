@@ -1,5 +1,15 @@
 import { db } from '../connection.js';
 import { countProductCurrency } from '../utils/countProductCurrency.js';
+import axios from 'axios';
+
+const calcPriceForOneProducts = (item, currency) => {
+  const actualProductCurrency = currency.find((el) => el.ccy === item.iso);
+  return item.discount_percent
+    ? (item.base_price - (item.base_price * item.discount_percent) / 100) *
+        actualProductCurrency.sale
+    : item.base_price * actualProductCurrency.sale;
+};
+
 export const getAllCategories = (req, res) => {
   const categories = `
     SELECT 
@@ -244,171 +254,12 @@ export const getFiltrationCharacteristictAndParams = (req, res) => {
   });
 };
 
-export const postFiltrationParams = (req, res) => {
-  const url = req.params.url;
-  const brands = req.body.brands;
-  const min_price = req.body.min_price;
-  const max_price = req.body.max_price;
-
-  console.log(min_price, max_price);
-
-  const params = req.body.filter_params;
-
-  let q = `
-    SELECT DISTINCT
-	    p.id
-      FROM master.product_rel_property_value prpv
-      JOIN property_lang pl 
-	      ON pl.property_id = prpv.property_id
-      JOIN product_category pc
-	      ON pc.product_id = prpv.product_id
-      JOIN category_lang cl
-	      ON cl.category_id = pc.category_id
-      JOIN property_value_lang pvl
-	      ON pvl.property_value_id = prpv.property_value_id
-      JOIN product p
-	      ON p.id = pc.product_id
-      JOIN product_price pp
-	      ON p.id = pp.product_id
-      WHERE cl.url = '${url}'
-  `;
-
-  if (brands.length) {
-    q = q + ` AND p.manufacturer_id IN (${brands.join(', ')})`;
-  }
-
-  if (min_price || max_price) countProductCurrency(url, min_price, max_price);
-
-  if (min_price && max_price) {
-    q = q + ` AND pp.base_price BETWEEN ${min_price} AND ${max_price}`;
-  } else if (min_price && !max_price) {
-    q = q + ` AND pp.base_price > ${min_price}`;
-  } else if (!min_price && max_price) {
-    q = q + ` AND pp.base_price < ${max_price}`;
-  }
-
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-
-    console.log(data);
-
-    // if we havnt any params in request we will return the result of last query
-    if (!Object.keys(params).length) {
-      const q = `
-        SELECT distinct
-          pl.name as product_name, 
-          cl.name as category_name, 
-          pl.url, 
-          pp.base_price, 
-          pp.discount_percent, 
-          pc.product_id,
-          pl.description,
-          pl.meta_description,
-          pl.meta_title,
-          pc.category_id,
-          c.id,
-          c.iso,
-          cl.url as category_url
-        FROM product_category pc
-        JOIN product_lang pl 
-          ON pc.product_id = pl.product_id
-        JOIN category_lang cl 
-          ON pc.category_id = cl.category_id
-        JOIN product_price pp 
-          ON pc.product_id = pp.product_id
-        JOIN product p 
-          ON pc.product_id = p.id
-        JOIN currency c
-          ON c.id = pp.currency_id
-        WHERE cl.url = '${url}'
-        AND pl.product_id IN(${data.map((el) => el.id)})
-        AND cl.language_id = 1
-      `;
-
-      db.query(q, (err, data) => {
-        //if (err) console.log(err);
-        return res.json(data);
-      });
-    }
-
-    // get all ids from first step of filtration query
-    const arr_of_id = data.map((el) => el.id);
-
-    // geting all information about products who has id in params array
-    const secound_q = `
-      SELECT DISTINCT
-        p.id,
-        prpv.property_id,
-        pvl.property_value_id,
-        pvl.name
-      FROM product p
-      JOIN product_rel_property_value prpv
-        ON prpv.product_id = p.id
-      JOIN property_value_lang pvl 
-        ON pvl.property_value_id = prpv.property_value_id
-      AND p.id IN (${arr_of_id.join(',')})
-    `;
-
-    db.query(secound_q, (err, data) => {
-      //if (err) console.log(err);
-
-      // group information about product params
-      const items = arr_of_id.map((el) => {
-        const result = {};
-        data
-          .filter((e) => e.id === el)
-          .forEach((item) => {
-            result[item.property_id] = item.name;
-          });
-        result.id = el;
-        return result;
-      });
-
-      // check the suitable products
-      const result = items
-        .filter((el) => {
-          let flag = 0;
-          for (let key in params) {
-            if (el[key] === params[key]) flag++;
-            if (flag === Object.keys(params).length) return true;
-          }
-        })
-        .map((el) => el.id);
-
-      const q = `
-          SELECT distinct
-          pl.name as product_name, 
-          cl.name as category_name, 
-          pl.url, 
-          pp.base_price, 
-          pp.discount_percent, 
-          pc.product_id,
-          pl.description,
-          pl.meta_description,
-          pl.meta_title,
-          pc.category_id,
-          c.id,
-          c.iso,
-          cl.url as category_url
-        FROM product_category pc
-        JOIN product_lang pl 
-          ON pc.product_id = pl.product_id
-        JOIN category_lang cl 
-          ON pc.category_id = cl.category_id
-        JOIN product_price pp 
-          ON pc.product_id = pp.product_id
-        JOIN product p 
-          ON pc.product_id = p.id
-        JOIN currency c
-          ON c.id = pp.currency_id
-        WHERE pl.product_id IN(${result.join(',')})
-        AND cl.language_id = 1
-      `;
-
-      db.query(q, (err, data) => {
-        //if (err) console.log(err);
-        return res.json(data);
-      });
-    });
-  });
+export const postFiltrationParams = async (req, res) => {
+  const filtretionParams = {
+    url: req.params.url,
+    brands: req.body.brands,
+    min: req.body.min_price,
+    max: req.body.max_price,
+    params: req.body.filter_params,
+  };
 };
