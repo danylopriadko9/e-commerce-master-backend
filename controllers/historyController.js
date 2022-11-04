@@ -1,4 +1,4 @@
-import { db } from '../connection.js';
+import { db } from '../config/connection.js';
 
 export const getHistoryMap = (req, res) => {
   const url = req.params.url;

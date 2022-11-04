@@ -1,27 +1,14 @@
-import express from 'express';
-import dotenv from 'dotenv';
-dotenv.config();
-import cors from 'cors';
-import bodyParser from 'body-parser';
-import filtrationController from './controllers/filtrationController.js';
-import router from './Router/router.js';
+import categoryController from './controllers/categoriesController.js';
+import newsController from './controllers/newsController.js';
+import app from './config/express.js';
 
 import {
   categoriesController,
   productController,
-  newsController,
   historyController,
 } from './controllers/index.js';
-import path from 'path';
 
 const port = process.env.PORT || 3001;
-const app = express();
-app.use(cors());
-app.use(bodyParser.json());
-app.use(express.json());
-app.use('/filter', router);
-
-const __dirname = path.resolve();
 
 //-----------------------------------------------------------------------------
 //--------------------products
@@ -38,18 +25,15 @@ app.post(
   productController.getPropertiesCompareProducts
 );
 
-//app.post('/filter/post:url', categoriesController.postFiltrationParams);
-
 //--------------------categories
-app.get('/categories', categoriesController.getAllCategories);
+app.get('/categories', categoryController.getAllCategories);
+app.get('/subcategories/:url', categoryController.getSubcategoriesInformation);
+
 app.get(
-  '/productCategories/:url/:page/:manufacturer?',
+  '/productCategories/:url/:page',
   categoriesController.getProductCategories
 );
-app.get(
-  '/subcategories/:url',
-  categoriesController.getSubcategoriesInformation
-);
+
 app.get(
   '/subcategories/filter/:url',
   categoriesController.getSubcategoriesFilterParams
@@ -77,8 +61,6 @@ app.get(
 );
 
 //-----------------------------------------------------------------------------
-
-app.use('/static', express.static(path.join(__dirname + '/static')));
 
 const startApp = () => {
   try {

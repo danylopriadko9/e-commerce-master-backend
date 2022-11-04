@@ -1,4 +1,4 @@
-import dbService from '../connection.js';
+import dbService from '../config/connection.js';
 import {
   formatData,
   filtrationByParams,

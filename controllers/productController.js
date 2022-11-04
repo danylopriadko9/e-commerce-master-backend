@@ -1,4 +1,4 @@
-import { db } from '../connection.js';
+import { db } from '../config/connection.js';
 
 import { readdir } from 'fs/promises';
 import path from 'path';

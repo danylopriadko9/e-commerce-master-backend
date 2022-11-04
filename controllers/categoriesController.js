@@ -1,44 +1,33 @@
-import { db } from '../connection.js';
-import { countProductCurrency } from '../utils/countProductCurrency.js';
-import axios from 'axios';
+import dbService, { db } from '../config/connection.js';
 
-const calcPriceForOneProducts = (item, currency) => {
-  const actualProductCurrency = currency.find((el) => el.ccy === item.iso);
-  return item.discount_percent
-    ? (item.base_price - (item.base_price * item.discount_percent) / 100) *
-        actualProductCurrency.sale
-    : item.base_price * actualProductCurrency.sale;
-};
+class categoryController {
+  async getAllCategories(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getAllCategories();
 
-export const getAllCategories = (req, res) => {
-  const categories = `
-    SELECT 
-    category.id, 
-    category_lang.name, 
-    category_lang.url, 
-    category_lang.description, 
-    category_lang.meta_title, 
-    category_lang.meta_keywords, 
-    category_lang.meta_description,
-    category.parent_id
-  FROM master.category, master.category_lang
-  WHERE category.id = category_lang.category_id
-  AND url IS NOT NULL
-  AND status = 1 
-  AND category_lang.language_id = 1
-    `;
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  db.query(categories, (err, data) => {
-    if (err) throw err;
-    return res.json(data);
-  });
-};
+  async getSubcategoriesInformation(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getSubcategoriesInformation(req.params.url);
+
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
+}
 
 // pagination
 export const getProductCategories = (req, res) => {
   const url = req.params.url;
   const page = req.params.page;
-  const manufacturer = req.params.manufacturer;
 
   const qtyItemsPage = 8;
 
@@ -88,38 +77,6 @@ export const getProductCategories = (req, res) => {
         numberOfPages,
       });
     });
-  });
-};
-
-export const getSubcategoriesInformation = (req, res) => {
-  const url = req.params.url;
-  const q = ` 
-  SELECT 
-	c.id,
-	ci.dir_path,
-    ci.filename,
-    cl.name,
-    cl.url
-FROM category c
-JOIN category_lang cl 
-	ON c.id = cl.category_id
-JOIN category_image ci
-	ON ci.category_id = c.id
-WHERE cl.language_id = 1
-AND c.parent_id IN (
-	SELECT c.id
-	FROM category c
-	JOIN category_lang cl
-		ON cl.category_id = c.id
-	WHERE cl.language_id = 1 
-	AND cl.url IS NOT NULL
-    AND cl.url = '${url}'
-)
-  `;
-
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-    res.json(data);
   });
 };
 
@@ -254,12 +211,4 @@ export const getFiltrationCharacteristictAndParams = (req, res) => {
   });
 };
 
-export const postFiltrationParams = async (req, res) => {
-  const filtretionParams = {
-    url: req.params.url,
-    brands: req.body.brands,
-    min: req.body.min_price,
-    max: req.body.max_price,
-    params: req.body.filter_params,
-  };
-};
+export default new categoryController();
