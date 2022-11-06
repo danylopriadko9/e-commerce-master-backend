@@ -1,277 +1,124 @@
-import { db } from '../config/connection.js';
+import dbService from '../config/connection.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 import { readdir } from 'fs/promises';
 import path from 'path';
-const __dirname = path.resolve();
 
-export const getProductsWithDiscountQuery = (req, res) => {
-  const productsWithDiscountQuery = `
-    SELECT 
-      pl.name as product_name, 
-      cl.name as category_name, 
-      pl.url, 
-      pp.base_price, 
-      pp.discount_percent, 
-      pi.dir_path, 
-      pi.filename, 
-      pc.product_id,
-      pc.category_id,
-      c.id,
-      c.iso,
-      cl.url as category_url
-  FROM product_category pc
-  JOIN product_lang pl 
-    ON pc.product_id = pl.product_id
-  JOIN category_lang cl 
-    ON pc.category_id = cl.category_id
-  JOIN product_price pp 
-    ON pc.product_id = pp.product_id
-  JOIN product_image pi 
-    ON pi.product_id = pc.product_id
-  JOIN currency c
-	  ON c.id = pp.currency_id
-  WHERE pl.language_id = 1 
-  AND cl.language_id = 1
-  AND pp.discount_percent > 25
-    `;
+class productController {
+  async getProductsWithDiscount(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getProductsWithDiscount();
 
-  db.query(productsWithDiscountQuery, (err, data) => {
-    if (err) console.log(err);
-    return res.json(data);
-  });
-};
-
-export const getProductImage = async (req, res) => {
-  const dir = `/static/product/${req.params.id}`;
-  const dirents = await readdir(__dirname + dir, (err) => {
-    if (err) throw new Error(err);
-  });
-  res.redirect(`http://localhost:3001${dir}/${dirents[0]}`);
-};
-
-export const getNewProducts = (req, res) => {
-  const q = `
-        SELECT distinct
-	        pl.name as product_name, 
-            cl.name as category_name, 
-            pl.url, 
-            pp.base_price, 
-            pp.discount_percent, 
-            pc.product_id,
-            cl.category_id,
-            c.id,
-            c.iso,
-            cl.url as category_url
-        FROM product_category pc
-        JOIN product_lang pl 
-          ON pc.product_id = pl.product_id
-        JOIN category_lang cl 
-          ON pc.category_id = cl.category_id
-        JOIN product_price pp 
-          ON pc.product_id = pp.product_id
-        JOIN product_image pi 
-          ON pi.product_id = pc.product_id
-        JOIN product p 
-          ON pc.product_id = p.id
-        JOIN currency c
-	        ON c.id = pp.currency_id
-        WHERE pl.language_id = 1 
-        AND cl.language_id = 1
-        ORDER BY p.t_created DESC
-        LIMIT 20
-    `;
-
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-    return res.json(data);
-  });
-};
-
-export const getOneProductByUrl = (req, res) => {
-  const url = req.params.url;
-  const q = `
-    SELECT distinct
-      pl.name as product_name, 
-      cl.name as category_name, 
-      pl.url, 
-      pp.base_price, 
-      pp.discount_percent, 
-      pc.product_id,
-      pl.description,
-      pl.meta_description,
-      pl.meta_title,
-      pc.category_id,
-      c.id,
-      c.iso,
-      cl.url as category_url
-    FROM product_category pc
-    JOIN product_lang pl 
-      ON pc.product_id = pl.product_id
-    JOIN category_lang cl 
-      ON pc.category_id = cl.category_id
-    JOIN product_price pp 
-      ON pc.product_id = pp.product_id
-    JOIN product p 
-      ON pc.product_id = p.id
-    JOIN currency c
-	    ON c.id = pp.currency_id
-    WHERE pl.url = '${url}'
-    AND cl.language_id = 1
-  `;
-
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-    return res.json(data);
-  });
-};
-
-export const getAffPhotoForOneProduct = (req, res) => {
-  const id = req.params.id;
-
-  const q = `
-    SELECT filename
-    FROM product p
-    JOIN product_image pi ON p.id = pi.product_id
-    WHERE p.id = ${id}
-  `;
-  if (id) {
-    db.query(q, (err, data) => {
-      if (err) console.log(err);
-      return res.json(data);
-    });
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
   }
-};
 
-export const getCharacteristics = (req, res) => {
-  const id = req.params.id;
-  const q = `
-    SELECT DISTINCT 
-	    prpv.product_id, 
-      pl.name AS characteristic, 
-      pvl.name AS value
-    FROM product_rel_property_value prpv
-    JOIN property_value_lang pvl ON pvl.property_value_id = prpv.property_value_id
-    JOIN property_lang pl ON pl.property_id = prpv.property_id
-    WHERE pl.language_id = pvl.language_id = 1
-    AND prpv.status LIKE 'enabled'
-    AND prpv.product_id = ${id}
-  `;
+  async getProductImage(req, res) {
+    try {
+      const dir = `/static/product/${req.params.id}`;
+      const dirents = await readdir(path.resolve() + dir, (err) => {
+        if (err) throw new Error(err);
+      });
+      res.redirect(`http://localhost:3001${dir}/${dirents[0]}`);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-    return res.json(data);
-  });
-};
+  async getNewProducts(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getNewProducts();
 
-export const getPropertiesProducts = (req, res) => {
-  const id = req.params.id;
-  const q = `
-  SELECT DISTINCT 
-		relation_product_id AS product_id, 
-        pl.name AS product_name, 
-        pl.description, 
-        pl.url, 
-        cl.name AS category_name,
-        pp.base_price,
-        pp.discount_percent,
-        c.iso,
-        cl.url as category_url
-    FROM product_rel_product prp
-    JOIN product_lang pl 
-	    ON pl.product_id = prp.relation_product_id
-    JOIN product_category pc 
-	    ON pc.product_id = prp.relation_product_id
-    JOIN product_price pp 
-	    ON pp.product_id = prp.relation_product_id
-    JOIN category_lang cl 
-	    ON cl.category_id = pc.category_id
-    JOIN currency c
-	    ON c.id = pp.currency_id
-    WHERE prp.product_id IN(${id})
-    AND pl.language_id = 1
-    AND cl.language_id = 1
-  `;
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-    return res.json(data);
-  });
-};
+  async getOneProductByUrl(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getOneProductByUrl(req.params.url);
 
-export const getCompareCharacteristicsValue = (req, res) => {
-  const id = req.params.id;
-  const q = `
-    SELECT DISTINCT 
-      pvl.name AS value,
-      pl.property_id,
-      p.guarantee
-    FROM product_rel_property_value prpv
-    JOIN property_value_lang pvl 
-      ON pvl.property_value_id = prpv.property_value_id
-    JOIN property_lang pl 
-      ON pl.property_id = prpv.property_id
-    JOIN product p
-      ON p.id = prpv.product_id
-    WHERE pl.language_id = pvl.language_id = 1
-      AND prpv.status LIKE 'enabled'
-      AND prpv.product_id = ${id}
-  `;
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-    return res.json({
-      [id]: data,
-    });
-  });
-};
+  async getAffPhotoForOneProduct(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getAffPhotoForOneProduct(req.params.id);
 
-export const getPropertiesCompareProducts = (req, res) => {
-  const id_arr = req.body.data;
-  console.log(id_arr);
-  const q = `
-    SELECT DISTINCT
-      relation_product_id AS product_id,
-      pl.name AS product_name,
-      pl.description,
-      pl.url,
-      cl.name AS category_name,
-      pp.base_price,
-      pp.discount_percent,
-      c.iso,
-      cl.url as category_url
-    FROM product_rel_product prp
-    JOIN product_lang pl
-      ON pl.product_id = prp.relation_product_id
-    JOIN product_category pc
-      ON pc.product_id = prp.relation_product_id
-    JOIN product_price pp
-      ON pp.product_id = prp.relation_product_id
-    JOIN category_lang cl
-      ON cl.category_id = pc.category_id
-    JOIN currency c
-	    ON c.id = pp.currency_id
-    WHERE prp.product_id IN(${id_arr.join(',')})
-    AND pl.language_id = cl.language_id = 1
-  `;
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  db.query(q, (err, data) => {
-    if (err) console.log(err);
-    return res.json(data);
-  });
-};
+  async getCharacteristics(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getCharacteristics(req.params.id);
 
-export const getSearchItems = (req, res) => {
-  const group_url = req.params.groupUrl;
-  const search_value = req.params.searchValue;
-  const page = req.params.page;
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-  const qtyItemsPage = 8;
-  const startingLimit = (page - 1) * qtyItemsPage;
+  async getPropertiesProducts(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getPropertiesProducts(req.params.id);
 
-  if (group_url) {
-    const clean_group_url = group_url.replace('group_', '');
-    //запрос на группу, родительская ли она
-    const category_q = `
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async getCompareCharacteristicsValue(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getCompareCharacteristicsValue(req.params.id);
+
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async getPropertiesCompareProducts(req, res) {
+    try {
+      const db = dbService.getDbServiceInstance();
+      const result = db.getPropertiesProducts(req.body.data);
+
+      result.then((data) => res.json(data));
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  async getSearchItems(req, res) {
+    try {
+      const group_url = req.params.groupUrl;
+      const search_value = req.params.searchValue;
+      const page = req.params.page;
+
+      const qtyItemsPage = 8;
+      const startingLimit = (page - 1) * qtyItemsPage;
+
+      if (group_url) {
+        const clean_group_url = group_url.replace('group_', '');
+        //запрос на группу, родительская ли она
+        const category_q = `
       SELECT DISTINCT
         c.id
       FROM category c
@@ -280,11 +127,11 @@ export const getSearchItems = (req, res) => {
       AND cl.url = '${clean_group_url}'
       AND c.parent_id = 0
     `;
-    db.query(category_q, (err, data) => {
-      if (err) console.log(err);
-      // если не родительская
-      if (!data.length) {
-        const q = `
+        db.query(category_q, (err, data) => {
+          if (err) console.log(err);
+          // если не родительская
+          if (!data.length) {
+            const q = `
           SELECT DISTINCT
             pl.name as product_name, 
             cl.name as category_name, 
@@ -318,26 +165,26 @@ export const getSearchItems = (req, res) => {
           AND cl.url LIKE '${clean_group_url}'
         `;
 
-        db.query(q, (err, data) => {
-          if (err) console.log(err);
-          const numberOfPages = Math.ceil(data.length / qtyItemsPage);
-          db.query(
-            q + ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
-            (error, products) => {
-              if (error) console.log(error);
+            db.query(q, (err, data) => {
+              if (err) console.log(err);
+              const numberOfPages = Math.ceil(data.length / qtyItemsPage);
+              db.query(
+                q + ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
+                (error, products) => {
+                  if (error) console.log(error);
 
-              return res.json({
-                data: products,
-                type: 'product',
-                pageQty: numberOfPages,
-              });
-            }
-          );
-        });
-        return;
-      } else {
-        // если родительская
-        const subcategories_q = `
+                  return res.json({
+                    data: products,
+                    type: 'product',
+                    pageQty: numberOfPages,
+                  });
+                }
+              );
+            });
+            return;
+          } else {
+            // если родительская
+            const subcategories_q = `
           SELECT 
             c.id,
             ci.dir_path,
@@ -361,21 +208,20 @@ export const getSearchItems = (req, res) => {
             AND cl.url = '${clean_group_url}'
           )
         `;
-        db.query(subcategories_q, (err, data) => {
-          if (err) console.log(err);
-          return res.json({
-            data: data,
-            type: 'category',
-          });
+            db.query(subcategories_q, (err, data) => {
+              if (err) console.log(err);
+              return res.json({
+                data: data,
+                type: 'category',
+              });
+            });
+            return;
+          }
         });
-        return;
       }
-    });
-  }
-
-  // если ищем с главной страницы
-  if (search_value && !group_url) {
-    const q = `
+      // если ищем с главной страницы
+      if (search_value && !group_url) {
+        const q = `
       SELECT DISTINCT
         pl.name as product_name, 
         cl.name as category_name, 
@@ -406,21 +252,27 @@ export const getSearchItems = (req, res) => {
         OR pc.product_id = '${search_value}'
     `;
 
-    db.query(q, (err, data) => {
-      if (err) console.log(err);
-      const numberOfPages = Math.ceil(data.length / qtyItemsPage);
+        db.query(q, (err, data) => {
+          if (err) console.log(err);
+          const numberOfPages = Math.ceil(data.length / qtyItemsPage);
 
-      db.query(
-        q + ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
-        (error, products) => {
-          if (error) console.log(error);
-          return res.json({
-            data: products,
-            type: 'product',
-            pageQty: numberOfPages,
-          });
-        }
-      );
-    });
+          db.query(
+            q + ` LIMIT ${startingLimit}, ${qtyItemsPage}`,
+            (error, products) => {
+              if (error) console.log(error);
+              return res.json({
+                data: products,
+                type: 'product',
+                pageQty: numberOfPages,
+              });
+            }
+          );
+        });
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
-};
+}
+
+export default new productController();

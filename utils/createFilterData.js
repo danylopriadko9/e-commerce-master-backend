@@ -1,5 +1,3 @@
-//import axios from 'axios';
-
 export const formatData = (data) => {
   const unique_ids = Array.from(new Set(data.map((el) => el.id)));
 

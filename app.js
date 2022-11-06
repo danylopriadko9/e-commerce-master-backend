@@ -1,18 +1,15 @@
 import categoryController from './controllers/categoriesController.js';
+import productController from './controllers/productController.js';
 import newsController from './controllers/newsController.js';
-import app from './config/express.js';
+import historyController from './controllers/historyController.js';
 
-import {
-  categoriesController,
-  productController,
-  historyController,
-} from './controllers/index.js';
+import app from './config/express.js';
 
 const port = process.env.PORT || 3001;
 
 //-----------------------------------------------------------------------------
 //--------------------products
-app.get('/discount', productController.getProductsWithDiscountQuery);
+app.get('/discount', productController.getProductsWithDiscount);
 app.get('/getProductImage/:id', productController.getProductImage);
 app.get('/newProducts', productController.getNewProducts);
 app.get('/product/:url', productController.getOneProductByUrl);
@@ -28,21 +25,18 @@ app.post(
 //--------------------categories
 app.get('/categories', categoryController.getAllCategories);
 app.get('/subcategories/:url', categoryController.getSubcategoriesInformation);
-
 app.get(
   '/productCategories/:url/:page',
-  categoriesController.getProductCategories
+  categoryController.getProductCategories
 );
-
 app.get(
   '/subcategories/filter/:url',
-  categoriesController.getSubcategoriesFilterParams
+  categoryController.getSubcategoriesFilterParams
 );
 app.get(
   '/filter/category/:url',
-  categoriesController.getFiltrationCharacteristictAndParams
+  categoryController.getFiltrationCharacteristictAndParams
 );
-
 //--------------------news
 app.get('/news', newsController.getAllNews);
 
@@ -52,7 +46,7 @@ app.get('/history/:url', historyController.getHistoryMap);
 app.get('/compare/:id', productController.getCompareCharacteristicsValue);
 app.get(
   '/compare/category/:url',
-  categoriesController.getCharacteristicsCategory
+  categoryController.getCharacteristicsCategory
 );
 //-------------------search
 app.get(
