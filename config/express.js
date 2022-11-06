@@ -4,14 +4,15 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import path from 'path';
 
-import router from '../routes/router.js';
+import router from '../routes/index.js';
 
 const app = express();
 
 app.use(cors());
 app.use(bodyParser.json());
 app.use(express.json());
-app.use('/filter', router);
+
+app.use('/', router);
 
 const __dirname = path.resolve();
 app.use('/static', express.static(path.join(__dirname + '/static')));

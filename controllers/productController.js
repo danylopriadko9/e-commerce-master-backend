@@ -1,4 +1,4 @@
-import dbService from '../config/connection.js';
+import dbService, { db } from '../config/connection.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
